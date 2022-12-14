@@ -66,7 +66,6 @@ function onCreate()
       MAGENTA: 0xFFFF00FF,
       CYAN: 0xFF00FFFF
     }
-    onCreate = null; //this makes it so the script doesn't require an onCreate function
     pastCreatePost = false;
   ]])
   local code = getTextFromFile(wasNil and 'hscript/'..hscriptName..'.hx' or hscriptName) --get the code file
