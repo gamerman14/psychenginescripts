@@ -8,6 +8,28 @@ end
 --the code
 function onCreate()
   luaDebugMode = true;
+  local rh = runHaxeCode
+  rh("setVar('luaVarHolder', null);")
+  runHaxeCode = function(code, vars, globalDefine)
+    if not vars then
+      return rh(code)
+    else
+      local addedCode = ''
+      setProperty('luaVarHolder', vars)
+      for k,v in pairs(vars) do
+        addedCode = addedCode..(globalDefine and "" or 'var ')..k.." = getVar('luaVarHolder')."..k..";\n"
+      end
+      rh(addedCode..'\n'..code)
+      setProperty('luaVarHolder', nil)
+    end
+  end
+  local callbackDefine = {}
+  for i,callback in pairs(callbacks) do
+    callbackDefine[callback] = 'NULL'
+  end
+  runHaxeCode([[
+    var whatever:String = '';
+  ]], callbackDefine, true)
   local wasNil = false
   if hscriptName == nil then
     wasNil = true
@@ -16,6 +38,14 @@ function onCreate()
   end
   addHaxeLibrary('FunkinLua')
   addHaxeLibrary('Type')
+  addHaxeLibrary('Reflect')
+  addHaxeLibrary('Lua_helper', 'llua')
+  local luaFuncs = runHaxeCode([[
+    return [for(i in Lua_helper.callbacks.keys()) i];
+  ]])
+  for i,luaFunc in pairs(luaFuncs) do
+    runHaxeCode(luaFunc..' = Lua_helper.callbacks.get("'..luaFunc..'");')
+  end
   runHaxeCode([[
     //cause flxcolor no work cringe!!
     Colors = {
@@ -23,7 +53,7 @@ function onCreate()
       WHITE: 0xFFFFFFFF,
       GRAY: 0xFF808080,
       BLACK: 0xFF000000,
-      
+
       GREEN: 0xFF008000,
       LIME: 0xFF00FF00,
       YELLOW: 0xFFFFFF00,
@@ -38,43 +68,6 @@ function onCreate()
     }
     onCreate = null; //this makes it so the script doesn't require an onCreate function
     pastCreatePost = false;
-    function debugPrint(?txt1, ?txt2, ?txt3, ?txt4, ?txt5)
-    {
-      var cool = [for(thing in [txt1, txt2, txt3, txt4, txt5]) if(thing != null) thing];
-      if(cool.length > 0)
-        game.addTextToDebug(cool.join(', '), Colors.WHITE);
-      else
-        luaError('(debugPrint) All variables null!');
-    }
-    function luaError(txt:String)
-      game.addTextToDebug(txt, Colors.RED);
-    
-    //these have extended functions because its haxe to haxe instead of haxe to lua
-    function setProperty(variable:String, value:Dynamic):Bool
-    {
-      if(getProperty(variable, true) == null)
-        return;
-      var killMe:Array<String> = variable.split('.');
-			if(killMe.length > 1) {
-				FunkinLua.setVarInArray(FunkinLua.getPropertyLoopThingWhatever(killMe), killMe[killMe.length-1], value);
-				return true;
-			}
-			FunkinLua.setVarInArray(FunkinLua.getInstance(), variable, value);
-			return true;
-    }
-    function getProperty(variable:String, ?fromSetProperty:Bool):Dynamic
-    {
-      var result:Dynamic = null;
-			var killMe:Array<String> = variable.split('.');
-			if(killMe.length > 1)
-				result = FunkinLua.getVarInArray(FunkinLua.getPropertyLoopThingWhatever(killMe), killMe[killMe.length-1]);
-			else
-				result = FunkinLua.getVarInArray(FunkinLua.getInstance(), variable);
-      
-      if(result == null)
-        luaError((fromSetProperty ? '(setProperty) ' : '(getProperty) ') + 'Cannot find variable: ' + variable);
-			return result;
-    }
   ]])
   local code = getTextFromFile(wasNil and 'hscript/'..hscriptName..'.hx' or hscriptName) --get the code file
   local lines = {} --split everything into lines to detect import lines
@@ -92,7 +85,7 @@ function onCreate()
         end
       end
       addHaxeLibrary(stuff[#stuff], (ok and table.concat(ok, '.') or nil)) --finally add it
-      
+
       --check if the lib you just added is actually useable
       if runHaxeCode([[
         return ]]..stuff[#stuff]..[[ == null;
@@ -102,26 +95,20 @@ function onCreate()
       table.insert(lines, '') --so the error messages line up
     end
   end
-
   runHaxeCode(table.concat(lines, '\n')) --reconnect the lines without the imports
   updateLuaVars()
 end
 function callOnHaxe(name, args)
-  if args then
-    for i,arg in pairs(args) do
-      args[i] = fixType(arg)
-    end
-  end
   return runHaxeCode([[
     var func = ]]..name..[[;
-    if(func != null)
-      func(]]..((args and #args > 0) and table.concat(args, ', ') or '')..[[);
-  ]])
+    if(func != null && func != 'NULL')
+      return Reflect.callMethod(null, func, args);
+  ]], {args = args})
 end
 function setOnHaxe(who, what)
   runHaxeCode([[
-    ]]..who..[[ = ]]..fixType(what)..[[;
-  ]])
+    ]]..who..[[ = what;
+  ]], {what = what})
 end
 function updateLuaVars()
   for k,v in pairs(_G) do
@@ -161,47 +148,6 @@ function string.split(self, sep)
     end
     return t
 end
-function fixType(inp)
-  cool = {
-    ['string'] = function()
-      return '"' .. inp:gsub('"', '\\"') .. '"'
-    end,
-    ['number'] = function() return tostring(inp) end,
-    ['table'] = function()
-      local hasStr = false
-      for k,v in pairs(inp) do
-        if type(k) == 'string' then
-          hasStr = true
-        end
-      end
-      for k,v in pairs(inp) do
-        if type(k) == 'number' and hasStr then
-          debugPrint('mixed table and array!', inp)
-          return;
-        end
-      end
-      if hasStr then
-        local final = {}
-        for k,v in pairs(inp) do
-          table.insert(final, k..': '..fixType(v))
-        end
-        return '{\n'..table.concat(final, ',\n')..'}'
-      else
-        local final = {}
-        for k,v in pairs(inp) do
-          table.insert(final, fixType(v))
-        end
-        return '[\n'..table.concat(final, ',\n')..']'
-      end
-    end
-  }
-  if cool[type(inp)] then
-    return cool[type(inp)]()
-  end
-  return tostring(inp)
-end
---every single callOnLuas made to callOnHaxe (in order of appearence from atoms perspective)
---also i looked at the way the og hx file support did it and im so stupid why am i so stupid oh my god
 function onCreatePost(...)
   runHaxeCode([[
     //get the lua instance
@@ -213,44 +159,34 @@ function onCreatePost(...)
         luaInstance = thing;
       }
     }
-    //these are basically as limited as the lua varients cause its haxe -> lua -> haxe
-    //you shouldn't need to use these if you are using haxe code in the first place though
-    function getPropertyFromClass(classVar:String, variable:String)
-      return luaInstance.call('getPropertyFromClass', [classVar, variable]);
-    function setPropertyFromClass(classVar:String, variable:String, value:Dynamic)
-      return luaInstance.call('setPropertyFromClass', [classVar, variable, value]);
-    
     pastCreatePost = true;
   ]])
-   -- return callOnHaxe('onCreatePost', {...}) 
 end
 function onUpdate(...) 
   --update lua vars and stuff
   updateLuaVars()
-  -- return callOnHaxe('onUpdate', {...})
+end
+
+--tests to see if a variable exists
+function varExists(var)
+  local ok = luaDebugMode
+  luaDebugMode = false --disables errors from appearing
+  local exists = runHaxeCode([[
+    var test = ]]..var..[[;
+    return true;
+  ]])
+  luaDebugMode = ok
+  return exists
 end
 
 --this appends every callback to also call on haxe, dont touch this basically lol
-for i,func in pairs({
-  'onCreate', 'onCreatePost',
-  'onTweenCompleted', 'onTimerCompleted',
-  'onCustomSubstateCreate', 'onCustomSubstateCreatePost', 'onCustomSubstateUpdate', 'onCustomSubstateUpdatePost',
-  'onGameOverStart', 'onGameOverConfirm',  'onGameOver',
-  'onStartCountdown', 'onCountdownStarted',
-  'onUpdateScore',
-  'onNextDialogue', 'onSkipDialogue',
-  'onSongStart',
-  'onResume', 'onPause',
-  'onSpawnNote',
-  'onUpdate', 'onUpdatePost',
-  'onEvent', 'eventEarlyTrigger',
-  'onMoveCamera',
-  'onKeyPress', 'onKeyRelease',
-  'noteMiss', 'noteMissPress', 'onGhostTap',
-  'opponentNoteHit', 'goodNoteHit',
-  'onStepHit', 'onBeatHit', 'onSectionHit',
-  'onRecalculateRating'
-}) do
+callbacks = {
+  'onCreate', 'onCreatePost', 'onTweenCompleted', 'onTimerCompleted', 'onCustomSubstateCreate', 'onCustomSubstateCreatePost', 'onCustomSubstateUpdate', 'onCustomSubstateUpdatePost',
+  'onGameOverStart', 'onGameOverConfirm',  'onGameOver', 'onStartCountdown', 'onCountdownStarted', 'onUpdateScore', 'onNextDialogue', 'onSkipDialogue', 'onSongStart', 'onResume', 'onPause', 
+  'onSpawnNote', 'onUpdate', 'onUpdatePost', 'onEvent', 'eventEarlyTrigger', 'onMoveCamera', 'onKeyPress', 'onKeyRelease', 'noteMiss', 'noteMissPress', 'onGhostTap', 'opponentNoteHit', 'goodNoteHit', 'onStepHit', 
+  'onBeatHit', 'onSectionHit', 'onRecalculateRating'
+}
+for i,func in pairs(callbacks) do
   local old = _G[func] --get the orig function
   _G[func] = function(...) --... = args
     if old then --check if there was an orig function
