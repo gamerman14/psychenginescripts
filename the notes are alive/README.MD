@@ -2,4 +2,4 @@
 
 how did they do that
 
-![](https://cdn.discordapp.com/attachments/1051367873311936563/1051367875006431286/2022-12-11_00-19-48.mp4)
+https://cdn.discordapp.com/attachments/1051367873311936563/1051367875006431286/2022-12-11_00-19-48.mp4

@@ -6,9 +6,9 @@ works like in haxe
 
 ![](https://cdn.discordapp.com/attachments/1049476175690477628/1049476175954726932/image.png)
 
-![](https://cdn.discordapp.com/attachments/1049476175690477628/1049476176441245757/2022-12-05_19-03-17.mp4)
+https://cdn.discordapp.com/attachments/1049476175690477628/1049476176441245757/2022-12-05_19-03-17.mp4
 
-![](https://cdn.discordapp.com/attachments/1049476175690477628/1049476768119148634/2022-12-05_19-05-46.mp4)
+https://cdn.discordapp.com/attachments/1049476175690477628/1049476768119148634/2022-12-05_19-05-46.mp4
 
 example:
 ```lua
@@ -23,7 +23,7 @@ end
 
 ok i UPDATED it so you can tween playstate vars now
 
-![](https://cdn.discordapp.com/attachments/1049476175690477628/1049481253231018035/2022-12-05_19-23-32.mp4)
+https://cdn.discordapp.com/attachments/1049476175690477628/1049481253231018035/2022-12-05_19-23-32.mp4
 
 ```lua
 function onCreatePost()

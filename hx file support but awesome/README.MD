@@ -1,6 +1,6 @@
 # WHAT IS THIS? YOSHI ENGINE???
 
-to use this make an hx file in 'hscript/' and name it the same name as the main script, this doesnt read every script inside the folder, just the one that corresponds with the lua script's name
+to use this make an hx file called the same thing as your lua file and put them in the same place
 
 #update 1
 
@@ -69,3 +69,7 @@ function onCreatePost()
   debugPrint(getProperty('iconP1')); //you can get haxe objects with getProperty too
 }
 ```
+
+#update 3
+
+made hx files load from their lua files names

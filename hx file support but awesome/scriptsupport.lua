@@ -33,8 +33,6 @@ function onCreate()
   local wasNil = false
   if hscriptName == nil then
     wasNil = true
-    local idiotName = scriptName:split('/')
-    hscriptName = idiotName[#idiotName]:split('.')[1]
   end
   addHaxeLibrary('FunkinLua')
   addHaxeLibrary('Type')
@@ -66,9 +64,8 @@ function onCreate()
       MAGENTA: 0xFFFF00FF,
       CYAN: 0xFF00FFFF
     }
-    pastCreatePost = false;
   ]])
-  local code = getTextFromFile(wasNil and 'hscript/'..hscriptName..'.hx' or hscriptName) --get the code file
+  local code = getTextFromFile(wasNil and scriptName:gsub('.lua', '.hx'):gsub('mods/', ''):gsub(currentModDirectory, '') or hscriptName) --get the code file
   local lines = {} --split everything into lines to detect import lines
   for i,line in pairs(code:split('\n')) do
     if not stringStartsWith(line, 'import ') then --check for imports

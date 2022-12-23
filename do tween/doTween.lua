@@ -96,8 +96,8 @@ function doTween(Object, Values, Duration, Options)
     if(['game', 'instance', 'playstate'].contains(ObjectLower))
       obj = game;
       
-    if(Options != null && Options.ease != null)
-      Options.ease = FlxEase.]]..Options.ease..[[;
+    if(Options != null)
+      Options.ease = FlxEase.]]..(Options.ease or 'linear')..[[;
     
     game.modchartTweens.set(tweenTag, FlxTween.tween(obj, Values, Duration, Options));
     

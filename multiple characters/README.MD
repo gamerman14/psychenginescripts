@@ -19,8 +19,8 @@ end
 
 make sure to put this at the BOTTOM of your lua script!
 
-![](https://cdn.discordapp.com/attachments/1050996146035753070/1050996147679928330/2022-12-09_23-38-01.mp4)
+https://cdn.discordapp.com/attachments/1050996146035753070/1050996147679928330/2022-12-09_23-38-01.mp4
 
-![](https://cdn.discordapp.com/attachments/1050996146035753070/1051194767712731176/2022-12-10_12-52-28.mp4)
+https://cdn.discordapp.com/attachments/1050996146035753070/1051194767712731176/2022-12-10_12-52-28.mp4
 
-![](https://cdn.discordapp.com/attachments/1050996146035753070/1051209484976013453/2022-12-10_13-45-55.mp4)
+https://cdn.discordapp.com/attachments/1050996146035753070/1051209484976013453/2022-12-10_13-45-55.mp4

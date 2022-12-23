@@ -13,4 +13,4 @@ end
 
 ![](https://cdn.discordapp.com/attachments/1050549504505548882/1050549505503797378/image.png)
 
-![](https://cdn.discordapp.com/attachments/1050549504505548882/1050549506510426262/2022-12-08_18-05-44.mp4)
+https://cdn.discordapp.com/attachments/1050549504505548882/1050549506510426262/2022-12-08_18-05-44.mp4

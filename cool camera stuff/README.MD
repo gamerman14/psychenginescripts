@@ -6,4 +6,4 @@ shoutyout to raltyro for making zcaermeafix stuff this includes a modifed versio
 
 ![](https://cdn.discordapp.com/attachments/1044355224409743371/1044355227391885312/image.png)
 
-![](https://cdn.discordapp.com/attachments/1044355224409743371/1044355694360526958/2022-11-21_15-56-16.mp4)
+https://cdn.discordapp.com/attachments/1044355224409743371/1044355694360526958/2022-11-21_15-56-16.mp4
