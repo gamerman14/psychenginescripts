@@ -129,8 +129,21 @@ function addScript(path)
   cool.interp.variables.set('Reflect', Reflect); //adds some cool stuff
   cool.interp.variables.set('Type', Type);
   cool.interp.variables.set('this', cool);
-  cool.interp.variables.set('scriptName', path);
+  cool.interp.variables.set('HScriptName', path);
   cool.interp.variables.set('code', code);
+  cool.interp.variables.set('hscripts', hscripts);
+  cool.interp.variables.set('setScriptVariable', function(script, variable, value) {
+    if(hscripts.exists(script))
+      hscripts.get(script).interp.variables.set(variable, value);
+    else
+      game.addTextToDebug('Script doesnt existsssss' + script);
+  });
+  cool.interp.variables.set('getScriptVariable', function(script, variable) {
+    if(hscripts.exists(script))
+      return hscripts.get(script).interp.variables.get(variable);
+    else
+      game.addTextToDebug('Script doesnt existsssss' + script);
+  });
   //add all the stuff you WANT!!
   if(imports.length > 0)
   {
