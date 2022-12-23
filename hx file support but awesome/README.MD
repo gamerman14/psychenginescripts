@@ -73,3 +73,8 @@ function onCreatePost()
 #update 3
 
 made hx files load from their lua files names
+
+#ULTIMATE UPDATE
+
+this now loads hscripts from EVERY SINGLE PLACE where you can also load a lua script!
+this also removes luaInstance cause it was kinda useless

@@ -1,74 +1,109 @@
--- hscriptName = 'uncomment if you want a custom path'
--- colors n stuff usefull!!
---_G stuff to exclude from updating the lua script variables
 baseLua = {}
 for k,v in pairs(_G) do
   table.insert(baseLua, k)
 end
---the code
-function onCreate()
-  luaDebugMode = true;
-  local rh = runHaxeCode
-  rh("setVar('luaVarHolder', null);")
-  runHaxeCode = function(code, vars, globalDefine)
-    if not vars then
-      return rh(code)
-    else
-      local addedCode = ''
-      setProperty('luaVarHolder', vars)
-      for k,v in pairs(vars) do
-        addedCode = addedCode..(globalDefine and "" or 'var ')..k.." = getVar('luaVarHolder')."..k..";\n"
-      end
-      rh(addedCode..'\n'..code)
-      setProperty('luaVarHolder', nil)
+
+hscripts = {}
+function onCreate(path)
+  fixRH()
+  luaDebugMode = true
+  addHaxeLibrary 'FunkinLua'
+  addHaxeLibrary 'HScript'
+  addHaxeLibrary('Lua_helper', 'llua')
+  addHaxeLibrary 'Reflect'
+  addHaxeLibrary 'Type'
+  runHaxeCode([[
+  hscripts = [
+    'map' => 'map'
+  ];
+  hscripts.remove('map');
+  ]])
+  ----debugPrint 'hello im the origingal script'
+  --global scripts
+  for i,script in pairs(directoryFileList('mods/'..currentModDirectory..'/scripts')) do
+    if script:endsWith('.hx') then
+      addScript(('scripts/'..currentModDirectory..'/'..script):gsub('//', '/'))
     end
   end
-  local callbackDefine = {}
-  for i,callback in pairs(callbacks) do
-    callbackDefine[callback] = 'NULL'
+  if #currentModDirectory > 0 then
+    for i,script in pairs(directoryFileList('mods/scripts')) do
+      if script:endsWith('.hx') then
+        addScript('scripts/'..script)
+      end
+    end
   end
-  runHaxeCode([[
-    var whatever:String = '';
-  ]], callbackDefine, true)
-  local wasNil = false
-  if hscriptName == nil then
-    wasNil = true
+  --stage script
+  if checkFileExists('stages/'..curStage..'.hx') then
+    addScript('stages/'..curStage..'.hx')
   end
-  addHaxeLibrary('FunkinLua')
-  addHaxeLibrary('Type')
-  addHaxeLibrary('Reflect')
-  addHaxeLibrary('Lua_helper', 'llua')
-  local luaFuncs = runHaxeCode([[
-    return [for(i in Lua_helper.callbacks.keys()) i];
-  ]])
-  for i,luaFunc in pairs(luaFuncs) do
-    runHaxeCode(luaFunc..' = Lua_helper.callbacks.get("'..luaFunc..'");')
+  --character scripts
+  local chars = {boyfriendName, dadName, gfName}
+  for i,char in pairs(chars) do
+    if checkFileExists('characters/'..char..'.hx') then
+      addScript('characters/'..char..'.hx')
+    end
   end
-  runHaxeCode([[
-    //cause flxcolor no work cringe!!
-    Colors = {
-      TRANSPARENT: 0x00000000,
-      WHITE: 0xFFFFFFFF,
-      GRAY: 0xFF808080,
-      BLACK: 0xFF000000,
-
-      GREEN: 0xFF008000,
-      LIME: 0xFF00FF00,
-      YELLOW: 0xFFFFFF00,
-      ORANGE: 0xFFFFA500,
-      RED: 0xFFFF0000,
-      PURPLE: 0xFF800080,
-      BLUE: 0xFF0000FF,
-      BROWN: 0xFF8B4513,
-      PINK: 0xFFFFC0CB,
-      MAGENTA: 0xFFFF00FF,
-      CYAN: 0xFF00FFFF
-    }
-  ]])
-  local code = getTextFromFile(wasNil and scriptName:gsub('.lua', '.hx'):gsub('mods/', ''):gsub(currentModDirectory, '') or hscriptName) --get the code file
+  updateLuaVars()
+end
+events = {}
+noteTypes = {}
+function onCreatePost()
+  --notetypes and event scripts
+  for i=0,getProperty('unspawnNotes.length')-1 do
+    local has = false
+    for k,v in pairs(noteTypes) do
+      if v == getPropertyFromGroup('unspawnNotes', i, 'noteType') then
+        has = true
+      end
+    end
+    if not has and #getPropertyFromGroup('unspawnNotes', i, 'noteType') > 0 then
+      table.insert(noteTypes, getPropertyFromGroup('unspawnNotes', i, 'noteType'))
+    end
+  end
+  for k,v in pairs(noteTypes) do
+    if checkFileExists('custom_notetypes/'..v..'.hx') then
+      addScript('custom_notetypes/'..v..'.hx')
+    end
+  end
+  for i=0,getProperty('eventNotes.length')-1 do
+    local has = false
+    for k,v in pairs(events) do
+      if v == getPropertyFromGroup('eventNotes', i, 'event') then
+        has = true
+      end
+    end
+    if not has then
+      --debugPrint(getPropertyFromGroup('eventNotes', i, 'event'))
+      table.insert(events, getPropertyFromGroup('eventNotes', i, 'event'))
+    end
+  end
+  for k,v in pairs(events) do
+    if checkFileExists('custom_events/'..v..'.hx') then
+      addScript('custom_events/'..v..'.hx')
+    end
+  end
+end
+function string.startsWith(self, a) return stringStartsWith(self, a) end
+function string.endsWith(self, a) return stringEndsWith(self, a) end
+function string.split(self, sep)
+    local inputstr = self
+    if sep == nil then
+            sep = "%s"
+    end
+    local t={}
+    for str in string.gmatch(inputstr, "([^"..sep.."]+)") do
+            table.insert(t, str)
+    end
+    return t
+end
+function addScript(path)
+  table.insert(hscripts, path)
+  --debugPrint('added hscript: ', path)
+  local code = getTextFromFile(path)
   local lines = {} --split everything into lines to detect import lines
+  local imports = {}
   for i,line in pairs(code:split('\n')) do
-    if not stringStartsWith(line, 'import ') then --check for imports
+    if not line:startsWith 'import ' then --check for imports
       table.insert(lines, line)
     else
       local nospace = line:split()[2]:gsub(';', '') --get rid of spaces and colons
@@ -80,31 +115,102 @@ function onCreate()
           table.insert(ok, stuff[i])
         end
       end
-      addHaxeLibrary(stuff[#stuff], (ok and table.concat(ok, '.') or nil)) --finally add it
-
-      --check if the lib you just added is actually useable
-      if runHaxeCode([[
-        return ]]..stuff[#stuff]..[[ == null;
-      ]]) then
-        callOnHaxe('luaError', {'Unknown library/Inaccessible library: ' .. stuff[#stuff] .. ' (from: '..nospace..')'})
-      end
+      table.insert(imports, {
+        name = stuff[#stuff],
+        full = nospace
+      })
       table.insert(lines, '') --so the error messages line up
     end
   end
-  runHaxeCode(table.concat(lines, '\n')) --reconnect the lines without the imports
+  runHaxeCode([[
+  var cool = new HScript();
+  for(i in Lua_helper.callbacks.keys()) //adds lua callbacks
+    cool.interp.variables.set(i, Lua_helper.callbacks.get(i));
+  cool.interp.variables.set('Reflect', Reflect); //adds some cool stuff
+  cool.interp.variables.set('Type', Type);
+  cool.interp.variables.set('this', cool);
+  cool.interp.variables.set('scriptName', path);
+  cool.interp.variables.set('code', code);
+  //add all the stuff you WANT!!
+  if(imports.length > 0)
+  {
+    for(thing in imports)
+      cool.interp.variables.set(thing.name, Type.resolveClass(thing.full));
+  }
+  cool.execute(code);
+  hscripts.set(path, cool);
+  if(cool.interp.variables.exists('onCreate'))
+    Reflect.callMethod(null, cool.interp.variables.get('onCreate'), []);
+  ]], {code = code, path = path, imports = imports})
+end
+function callOnHaxe(func, args)
+  local ret = runHaxeCode([[
+  var ret = null;
+  for(hscript in hscripts)
+  {
+    if(hscript.interp.variables.exists(func))
+    {
+      var coolRet = Reflect.callMethod(null, hscript.interp.variables.get(func), args);
+      if(coolRet != null)
+        ret = coolRet;
+    }
+  }
+  setVar('STUPID_IDIOT_RET', ret); //GOSH!!!!!!!!!!!!!!!!
+  ]], {
+    func = func,
+    args = args
+  })
+  return getProperty('STUPID_IDIOT_RET')
+end
+function onUpdate()
   updateLuaVars()
 end
-function callOnHaxe(name, args)
-  return runHaxeCode([[
-    var func = ]]..name..[[;
-    if(func != null && func != 'NULL')
-      return Reflect.callMethod(null, func, args);
-  ]], {args = args})
-end
-function setOnHaxe(who, what)
+function setOnHaxe(variable, value)
   runHaxeCode([[
-    ]]..who..[[ = what;
-  ]], {what = what})
+  for(hscript in hscripts)
+    hscript.interp.variables.set(variable, value);
+  ]], {variable = variable, value = value})
+end
+function onDestroy()
+  callOnHaxe('onDestroy', {})
+  runHaxeCode([[
+  for(hscript in hscripts)
+    hscript = null;
+  hscripts = null;
+  ]])
+end
+function fixRH()
+  local rh = runHaxeCode
+  rh("setVar('luaVarHolder_HSCRIPTSUPPORT', null);")
+  runHaxeCode = function(code, vars)
+    if not vars then
+      return rh(code)
+    else
+      local addedCode = ''
+      setProperty('luaVarHolder_HSCRIPTSUPPORT', vars)
+      for k,v in pairs(vars) do
+        addedCode = addedCode.."var "..k.." = getVar('luaVarHolder_HSCRIPTSUPPORT')."..k..";\n"
+      end
+      rh(addedCode..'\n'..code)
+      setProperty('luaVarHolder_HSCRIPTSUPPORT', nil)
+    end
+  end
+end
+--this appends every callback to also call on haxe, dont touch this basically lol
+callbacks = {
+  'onCreatePost', 'onTweenCompleted', 'onTimerCompleted', 'onCustomSubstateCreate', 'onCustomSubstateCreatePost', 'onCustomSubstateUpdate', 'onCustomSubstateUpdatePost',
+  'onGameOverStart', 'onGameOverConfirm',  'onGameOver', 'onStartCountdown', 'onCountdownStarted', 'onUpdateScore', 'onNextDialogue', 'onSkipDialogue', 'onSongStart', 'onResume', 'onPause', 
+  'onSpawnNote', 'onUpdate', 'onUpdatePost', 'onEvent', 'eventEarlyTrigger', 'onMoveCamera', 'onKeyPress', 'onKeyRelease', 'noteMiss', 'noteMissPress', 'onGhostTap', 'opponentNoteHit', 'goodNoteHit', 'onStepHit', 
+  'onBeatHit', 'onSectionHit', 'onRecalculateRating'
+}
+for i,func in pairs(callbacks) do
+  local old = _G[func] --get the orig function
+  _G[func] = function(...) --... = args
+    if old then --check if there was an orig function
+      old(...)
+    end
+    return callOnHaxe(func, {...})
+  end
 end
 function updateLuaVars()
   for k,v in pairs(_G) do
@@ -130,64 +236,5 @@ function updateLuaVars()
       end
       setOnHaxe(k, v)
     end
-  end
-end
---stuff i copy and pasted from other stuff
-function string.split(self, sep)
-    local inputstr = self
-    if sep == nil then
-            sep = "%s"
-    end
-    local t={}
-    for str in string.gmatch(inputstr, "([^"..sep.."]+)") do
-            table.insert(t, str)
-    end
-    return t
-end
-function onCreatePost(...)
-  runHaxeCode([[
-    //get the lua instance
-    for(thing in game.luaArray)
-    {
-      var scriptName:String = "]]..scriptName:gsub('"', '\\"')..[[";
-      if(thing.scriptName == scriptName)
-      {
-        luaInstance = thing;
-      }
-    }
-    pastCreatePost = true;
-  ]])
-end
-function onUpdate(...) 
-  --update lua vars and stuff
-  updateLuaVars()
-end
-
---tests to see if a variable exists
-function varExists(var)
-  local ok = luaDebugMode
-  luaDebugMode = false --disables errors from appearing
-  local exists = runHaxeCode([[
-    var test = ]]..var..[[;
-    return true;
-  ]])
-  luaDebugMode = ok
-  return exists
-end
-
---this appends every callback to also call on haxe, dont touch this basically lol
-callbacks = {
-  'onCreate', 'onCreatePost', 'onTweenCompleted', 'onTimerCompleted', 'onCustomSubstateCreate', 'onCustomSubstateCreatePost', 'onCustomSubstateUpdate', 'onCustomSubstateUpdatePost',
-  'onGameOverStart', 'onGameOverConfirm',  'onGameOver', 'onStartCountdown', 'onCountdownStarted', 'onUpdateScore', 'onNextDialogue', 'onSkipDialogue', 'onSongStart', 'onResume', 'onPause', 
-  'onSpawnNote', 'onUpdate', 'onUpdatePost', 'onEvent', 'eventEarlyTrigger', 'onMoveCamera', 'onKeyPress', 'onKeyRelease', 'noteMiss', 'noteMissPress', 'onGhostTap', 'opponentNoteHit', 'goodNoteHit', 'onStepHit', 
-  'onBeatHit', 'onSectionHit', 'onRecalculateRating'
-}
-for i,func in pairs(callbacks) do
-  local old = _G[func] --get the orig function
-  _G[func] = function(...) --... = args
-    if old then --check if there was an orig function
-      old(...)
-    end
-    return callOnHaxe(func, {{...}})
   end
 end
