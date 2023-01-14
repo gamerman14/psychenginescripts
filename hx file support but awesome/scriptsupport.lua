@@ -154,7 +154,7 @@ function addScript(path)
   hscripts.set(path, cool);
   if(cool.interp.variables.exists('onCreate'))
     Reflect.callMethod(null, cool.interp.variables.get('onCreate'), []);
-  ]], {code = code, path = path, imports = imports})
+  ]], {code = table.concat(lines, '\n'), path = path, imports = imports})
 end
 function callOnHaxe(func, args)
   local ret = runHaxeCode([[
