@@ -43,6 +43,10 @@ function onCreate(path)
       addScript('characters/'..char..'.hx')
     end
   end
+  if #hscripts == 0 then --wacky stuff happens when thers no hscripts for some reason
+    close();
+    return;
+  end
   updateLuaVars()
 end
 events = {}
