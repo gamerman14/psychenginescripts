@@ -9,12 +9,11 @@ function doTween(Object, Values, Duration, Options)
     if not vars then
       return rh(code)
     else
-      local addedCode = ''
       setProperty('luaVarHolder', vars)
       for k,v in pairs(vars) do
-        addedCode = addedCode.."var "..k.." = getVar('luaVarHolder')."..k..";\n"
+        vars[k] = "var "..k.." = getVar('luaVarHolder')."..k..";"
       end
-      rh(addedCode..'\n'..code)
+      rh(table.concat(vars, '\n')..'\n'..code)
       setProperty('luaVarHolder', nil)
     end
   end

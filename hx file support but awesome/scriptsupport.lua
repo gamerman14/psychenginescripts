@@ -198,18 +198,17 @@ function onDestroy()
 end
 function fixRH()
   local rh = runHaxeCode
-  rh("setVar('luaVarHolder_HSCRIPTSUPPORT', null);")
+  rh("setVar('luaVarHolder', null);")
   runHaxeCode = function(code, vars)
     if not vars then
       return rh(code)
     else
-      local addedCode = ''
-      setProperty('luaVarHolder_HSCRIPTSUPPORT', vars)
+      setProperty('luaVarHolder', vars)
       for k,v in pairs(vars) do
-        addedCode = addedCode.."var "..k.." = getVar('luaVarHolder_HSCRIPTSUPPORT')."..k..";\n"
+        vars[k] = "var "..k.." = getVar('luaVarHolder')."..k..";"
       end
-      rh(addedCode..'\n'..code)
-      setProperty('luaVarHolder_HSCRIPTSUPPORT', nil)
+      rh(table.concat(vars, '\n')..'\n'..code)
+      setProperty('luaVarHolder', nil)
     end
   end
 end
