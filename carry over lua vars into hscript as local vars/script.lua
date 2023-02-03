@@ -9,10 +9,11 @@ function fixRH()
       return rh(code)
     else
       setProperty('luaVarHolder', vars)
+      local stringVars = {}
       for k,v in pairs(vars) do
-        vars[k] = "var "..k.." = getVar('luaVarHolder')."..k..";"
+          table.insert(stringVars, "var "..k.." = getVar('luaVarHolder')."..k..";")
       end
-      rh(table.concat(vars, '\n')..'\n'..code)
+      rh(table.concat(stringVars, '\n')..'\n'..code)
       setProperty('luaVarHolder', nil)
     end
   end
